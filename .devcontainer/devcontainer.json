@@ -1,224 +1,55 @@
-#!/bin/bash
+{
+  "name": "C/C++ Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": false,
+      "upgradePackages": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
 
-# Setup script for dev container
-set -e
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+        "vscodevim.vim",
+        "tomphilbin.gruvbox-themes"
+      ],
+      "settings": {
+        "workbench.colorTheme": "Gruvbox Dark Hard",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        }
+      }
+    }
+  },
 
-echo "🚀 Setting up your development environment..."
+  "postCreateCommand": "bash -c 'sudo apt-get update && sudo apt-get install -y build-essential gdb valgrind cmake ninja-build clang clang-format clang-tidy lldb strace ltrace neovim curl wget git zsh && curl -s https://ohmyposh.dev/install.sh | bash -s && echo \"eval \\\"\\$(oh-my-posh init zsh --config https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/1_shell.omp.json)\\\"\" >> ~/.zshrc && sudo chsh -s $(which zsh) $(whoami)'",
 
-# Create necessary directories
-mkdir -p ~/.config/nvim
-mkdir -p ~/.local/share/nvim/site/autoload
+  "remoteUser": "vscode",
+  
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,readonly,type=bind,consistency=cached"
+  ],
 
-# Copy Neovim configuration
-if [ -f "/workspaces/.devcontainer/nvim-init.vim" ]; then
-    cp /workspaces/.devcontainer/nvim-init.vim ~/.config/nvim/init.vim
-    echo "✅ Neovim configuration copied"
-fi
+  "forwardPorts": [],
 
-# Install Oh My Posh
-echo "📦 Installing Oh My Posh..."
-mkdir -p ~/.local/bin
-curl -s https://ohmyposh.dev/install.sh | bash -s -- -d ~/.local/bin
+  "portsAttributes": {},
 
-# Add Oh My Posh to PATH if not already there
-if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-fi
-
-# Download 1_shell theme
-mkdir -p ~/.config/ohmyposh
-curl -s https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/1_shell.omp.json -o ~/.config/ohmyposh/1_shell.omp.json
-
-# Configure Zsh with Oh My Posh
-cat > ~/.zshrc << 'EOF'
-# Path to oh-my-zsh installation
-export ZSH="$HOME/.oh-my-zsh"
-
-# Theme - disabled because we use Oh My Posh
-ZSH_THEME=""
-
-# Plugins
-plugins=(git docker python colored-man-pages command-not-found)
-
-source $ZSH/oh-my-zsh.sh
-
-# Aliases
-alias vim='nvim'
-alias v='nvim'
-alias ll='ls -lah --color=auto'
-alias la='ls -A --color=auto'
-alias l='ls -CF --color=auto'
-alias ..='cd ..'
-alias ...='cd ../..'
-alias g='git'
-alias gs='git status'
-alias gc='git commit'
-alias gp='git push'
-alias gl='git log --oneline --graph'
-
-# Environment
-export EDITOR='nvim'
-export VISUAL='nvim'
-export PATH="$HOME/.local/bin:$PATH"
-
-# Gruvbox-like colors for terminal
-export LS_COLORS='di=1;33:ln=1;36:so=1;35:pi=1;33:ex=1;32:bd=1;33:cd=1;33:su=1;31:sg=1;31:tw=1;34:ow=1;34'
-
-# Initialize Oh My Posh with 1_shell theme
-eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/1_shell.omp.json)"
-
-echo "🎨 Welcome to your Gruvbox Dark Hard dev environment!"
-echo "✨ Oh My Posh with 1_shell theme loaded!"
-echo "💡 Quick tips:"
-echo "   - Use 'nvim' or 'v' to open Neovim"
-echo "   - Press Space+e in Nvim for file explorer"
-echo "   - Press Space+ff for fuzzy file search"
-echo "   - Run ':PlugInstall' in Nvim to install plugins"
-EOF
-
-echo "✅ Zsh configuration created"
-
-# Install Neovim plugins
-echo "📦 Installing Neovim plugins..."
-nvim --headless +PlugInstall +qall 2>/dev/null || true
-
-# Create a sample C project structure
-if [ ! -d "/workspaces/sample-project" ]; then
-    mkdir -p /workspaces/sample-project/src
-    mkdir -p /workspaces/sample-project/include
-    mkdir -p /workspaces/sample-project/build
-    
-    # Create a sample main.c
-    cat > /workspaces/sample-project/src/main.c << 'CCODE'
-#include <stdio.h>
-#include "../include/utils.h"
-
-int main() {
-    printf("Hello from your Gruvbox dev environment!\n");
-    print_greetings();
-    return 0;
+  "runArgs": [
+    "--cap-add=SYS_PTRACE",
+    "--security-opt",
+    "seccomp=unconfined"
+  ]
 }
-CCODE
-
-    # Create a header file
-    cat > /workspaces/sample-project/include/utils.h << 'HCODE'
-#ifndef UTILS_H
-#define UTILS_H
-
-void print_greetings(void);
-
-#endif
-HCODE
-
-    # Create implementation
-    cat > /workspaces/sample-project/src/utils.c << 'UCODE'
-#include <stdio.h>
-#include "../include/utils.h"
-
-void print_greetings(void) {
-    printf("🎨 Gruvbox Dark Hard Theme\n");
-    printf("⚡ Ready for C development!\n");
-}
-UCODE
-
-    # Create Makefile
-    cat > /workspaces/sample-project/Makefile << 'MCODE'
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c17 -g -Iinclude
-SRC_DIR = src
-BUILD_DIR = build
-TARGET = $(BUILD_DIR)/program
-
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-
-all: $(BUILD_DIR) $(TARGET)
-
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-clean:
-	rm -rf $(BUILD_DIR)
-
-run: $(TARGET)
-	./$(TARGET)
-
-debug: $(TARGET)
-	gdb $(TARGET)
-
-.PHONY: all clean run debug
-MCODE
-
-    echo "✅ Sample C project created in /workspaces/sample-project"
-fi
-
-# Create a README
-cat > /workspaces/README.md << 'MDCODE'
-# 🎨 Gruvbox Dark Hard Dev Environment
-
-Your custom Debian-based development environment is ready!
-
-## 🛠️ Installed Tools
-
-- **Oh My Posh** with 1_shell theme for beautiful terminal prompts
-- **Neovim** with Gruvbox Dark Hard theme
-- **GCC/G++** - C/C++ compiler
-- **GDB** - Debugger
-- **Valgrind** - Memory leak detector
-- **CMake** - Build system
-- **Clangd** - LSP for C/C++
-- **Tmux** - Terminal multiplexer
-- **Zsh** with Oh My Zsh
-
-## ⌨️ Neovim Key Bindings
-
-- `Space + e` - Toggle file explorer
-- `Space + ff` - Find files
-- `Space + fg` - Live grep search
-- `Space + fb` - List buffers
-- `Space + w` - Save file
-- `Space + q` - Quit
-- `Space + db` - Toggle breakpoint
-- `Space + dc` - Debug continue
-
-## 🚀 Quick Start
-
-1. Open Neovim: `nvim` or `v`
-2. Install plugins: `:PlugInstall` (first time only)
-3. Check out the sample project in `/workspaces/sample-project`
-
-## 📁 Sample Project
-
-Build and run the sample:
-```bash
-cd /workspaces/sample-project
-make
-make run
-```
-
-Debug with GDB:
-```bash
-make debug
-```
-
-## 💡 Tips
-
-- Use `valgrind ./build/program` to check for memory leaks
-- Use `gdb ./build/program` for debugging
-- Customize `~/.config/nvim/init.vim` for your preferences
-MDCODE
-
-echo "✅ README created"
-
-echo ""
-echo "🎉 Setup complete!"
-echo "🎨 Your Gruvbox Dark Hard environment is ready!"
-echo ""
-echo "📖 Check /workspaces/README.md for usage guide"
-echo "🔧 Try: cd /workspaces/sample-project && make run"
